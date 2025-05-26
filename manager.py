@@ -21,7 +21,7 @@ def on_invalid_match():
 
 def main():
     # IP del servidor (puede ser 'http://localhost:5000' o IP pública)
-    server_url = input('Ingrese IP: ')
+    server_url = 'http://127.0.0.1:5000' #input('Ingrese IP: ')
     
     try:
         sio.connect(server_url)
@@ -29,7 +29,7 @@ def main():
         print(f'No se pudo conectar: {e}')
         return
 
-    match_id = input("Ingrese el Match ID: ").strip()
+    match_id = "match001" #input("Ingrese el Match ID: ").strip()
 
     # Emitir prepare_match
     print(f"Enviando evento prepare_match para el match {match_id}")

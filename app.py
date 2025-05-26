@@ -32,7 +32,7 @@ def run_match(match_id):
             sid = match_online_players[match_id][player]
             socketio.emit('new_problem', problem, to=sid, namespace='/')
             print('Problema liberado')
-        time.sleep(match.seconds_per_problem)
+        time.sleep(10) #match.seconds_per_problem)
         for player, player_problems in problems_per_player.items():
             problem_id = player_problems[i]
             match.add_tutorial_access(player, problem_id)
@@ -44,7 +44,7 @@ def run_match(match_id):
             sid = match_online_players[match_id][player]
             socketio.emit('new_tutorial', tutorial, to=sid, namespace='/')
             print('Tutorial liberado')
-        time.sleep(match.seconds_per_tutorial)
+        time.sleep(5) #match.seconds_per_tutorial)
     socketio.emit('match_ended', room=match_id, namespace='/')
 
 @socketio.on('join_match')

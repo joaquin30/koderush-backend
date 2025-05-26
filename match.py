@@ -62,7 +62,12 @@ class Match:
             WHERE match_id = ?
         """, (self.match_id,))
         submissions_data = self.cursor.fetchall()
-        return [dict(row) for row in submissions_data]  # Convert Row objects to dictionaries
+        return [{
+            'player': row[0],
+            'problem_id': row[1],
+            'timestamp': row[2],
+            'veredict': row[3],
+        } for row in submissions_data]  # Convert Row objects to dictionaries
     
     def add_player_submission(self, player: str, problem_id: str, language: str, solution: str, timestamp: int, veredict: str):
         self.cursor.execute("""
