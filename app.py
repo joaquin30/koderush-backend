@@ -3,11 +3,53 @@ import flask_socketio as sio
 import time
 import random
 from match import Match
+import requests
 
 app = flask.Flask(__name__)
 socketio = sio.SocketIO(app, cors_allowed_origins='*')
 matches: dict[str, Match] = {}
 match_online_players: dict[str, dict[str, str]] = {}
+
+# Using Piston API to execute code (For now, only Python is supported)
+def execute_code(code, input_data):
+    piston_url = "https://emkc.org/api/v2/piston/execute"
+    
+    payload = {
+        "language": "python",
+        "version": "3.10.0",
+        "files": [{
+            "content": code
+        }],
+        "stdin": input_data if input_data else ""
+    }
+    
+    try:
+        response = requests.post(piston_url, json=payload)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
+        
+        # Combine stdout and stderr (some errors might go to stdout)
+        output = data.get('run', {}).get('output', '').strip()
+        if data.get('run', {}).get('stderr'):
+            output += "\n" + data['run']['stderr'].strip()
+        
+        return output if output else None
+    except requests.exceptions.RequestException as e:
+        print(f"Error executing code: {e}")
+        return None
+
+# To evaluate individual tests for the code submitted
+def validate_solution(problem, solution):
+    verdict = "accepted"
+    for test in problem['examples']:
+        output = execute_code(solution, test['input'])
+        if output is None:
+            verdict = "runtime error"
+            break
+        if output.strip() != test['output'].strip():
+            verdict = "wrong answer"
+            break
+    return verdict
 
 def run_match(match_id):
     match = matches[match_id]
@@ -85,8 +127,7 @@ def handle_upload_solution(data):
     solution = data['solution']
     index = data['index']
     timestamp = int(time.time())
-    # TODO Conectar Piston
-    veredict = random.choice(['accepted', 'wrong answer'])
+    veredict = validate_solution(match.problems[problem_id], solution) # Only for Python for now
     match.add_player_submission(player, problem_id, language, solution, timestamp, veredict)
     sio.emit('new_submission', {'player': player, 'problem': problem_id,
             'timestamp': timestamp, 'veredict': veredict,
