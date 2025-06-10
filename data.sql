@@ -15,5 +15,7 @@ INSERT INTO matches (match_id, start_timestamp, seconds_per_problem, seconds_per
 INSERT INTO match_problems (match_id, problem_id) VALUES
 ('match001', 'prob001'),
 ('match001', 'prob002'),
+('match001', 'prob003'),
+('match002', 'prob001'),
 ('match002', 'prob002'),
 ('match002', 'prob003');

@@ -1,0 +1,10 @@
+@startuml koderush-prepareMatch
+
+Host -> API : prepareMatch(matchId)
+API -> prepareMatchLambda : trigger
+prepareMatchLambda -> DynamoDB : createTable(tempPlayersMatchId)
+prepareMatchLambda -> DynamoDB : createTable(tempPlayerProblemsMatchId)
+prepareMatchLambda -> DynamoDB : createTable(tempPlayerTutorialsMatchId)
+prepareMatchLambda -> API : true
+
+@enduml

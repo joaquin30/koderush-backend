@@ -1,0 +1,8 @@
+@startuml koderush-joinMatch
+
+User -> API : joinMatch(matchId, playerName)
+API -> joinMatchLambda : trigger(matchId, playerName, connectionId)
+joinMatchLambda -> tempPlayersMatchId : insert(playerName, connectionId)
+joinMatchLambda -> API : true
+
+@enduml

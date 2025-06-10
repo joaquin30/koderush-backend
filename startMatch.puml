@@ -1,0 +1,21 @@
+@startuml koderush-startMatch
+
+Host -> API : startMatch(matchId)
+API -> startMatchLambda : trigger(matchId)
+startMatchLambda -> tempPlayersMatchId : get_connectionIds()
+tempPlayersMatchId -> startMatchLambda : connectionIds
+startMatchLambda -> API : startTimestamp(connectionIds)
+API -> Players : startTimestamp()
+loop for earch problem
+    startMatchLambda -> tempPlayerProblemsMatchId : insert(problem)
+    startMatchLambda -> API : newProblem(problem, connectionIds)
+    API -> Players : newProblem(problem)
+    startMatchLambda -> startMatchLambda : wait(secondsPerProblem)
+end
+loop for earch tutorial
+    startMatchLambda -> tempPlayerTutorialsMatchId : insert(tutorial)
+    startMatchLambda -> API : newTutorial(tutorial, connectionIds)
+    API -> Players : newTutorial(tutorial)
+    startMatchLambda -> startMatchLambda : wait(secondsPerTutorial)
+end
+@enduml
