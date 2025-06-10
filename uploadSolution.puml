@@ -1,0 +1,13 @@
+@startuml koderush-uploadSolution
+
+Player -> API : uploadSolution(problem_id, language, solution)
+API -> uploadSolutionLambda: trigger(connectionId, ...)
+uploadSolutionLambda -> PistonAPI : run(solution, language)
+PistonAPI -> uploadSolutionLambda : result
+uploadSolutionLambda -> Submissions : insert(submission)
+uploadSolutionLambda -> tempPlayersMatchId : getConnectionIds()
+tempPlayersMatchId -> uploadSolutionLambda : Connection Ids
+uploadSolutionLambda -> API : newSubmission(connection ids)
+API -> Players : newSubmission
+
+@enduml

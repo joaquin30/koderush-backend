@@ -3,6 +3,11 @@
 User -> API : joinMatch(matchId, playerName)
 API -> joinMatchLambda : trigger(matchId, playerName, connectionId)
 joinMatchLambda -> tempPlayersMatchId : insert(playerName, connectionId)
-joinMatchLambda -> API : true
+joinMatchLambda -> tempPlayersMatchId : getConnectionIds()
+tempPlayersMatchId -> joinMatchLambda : Connection Ids
+joinMatchLambda -> API : newPlayer(Connection Ids)
+API -> Players : newPlayer
+joinMatchLambda -> API : stateUpdate(Connection Ids)
+API -> Players : stateUpdate
 
 @enduml

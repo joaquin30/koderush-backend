@@ -5,6 +5,5 @@ API -> prepareMatchLambda : trigger
 prepareMatchLambda -> DynamoDB : createTable(tempPlayersMatchId)
 prepareMatchLambda -> DynamoDB : createTable(tempPlayerProblemsMatchId)
 prepareMatchLambda -> DynamoDB : createTable(tempPlayerTutorialsMatchId)
-prepareMatchLambda -> API : true
 
 @enduml

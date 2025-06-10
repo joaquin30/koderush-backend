@@ -1,0 +1,7 @@
+@startuml koderush-disconnect
+
+Player -> API : disconnect()
+API -> disconnectLambda : disconnect(connectionId)
+disconnectLambda -> tempPlayersMatchId : delete(connectionId)
+
+@enduml

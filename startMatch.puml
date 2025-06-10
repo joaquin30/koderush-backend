@@ -2,7 +2,7 @@
 
 Host -> API : startMatch(matchId)
 API -> startMatchLambda : trigger(matchId)
-startMatchLambda -> tempPlayersMatchId : get_connectionIds()
+startMatchLambda -> tempPlayersMatchId : getConnectionIds()
 tempPlayersMatchId -> startMatchLambda : connectionIds
 startMatchLambda -> API : startTimestamp(connectionIds)
 API -> Players : startTimestamp()
