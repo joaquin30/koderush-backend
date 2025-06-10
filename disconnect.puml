@@ -3,5 +3,13 @@
 Player -> API : disconnect()
 API -> disconnectLambda : disconnect(connectionId)
 disconnectLambda -> tempPlayersMatchId : delete(connectionId)
-
+disconnectLambda -> tempPlayersMatchId : getConnectionIds()
+tempPlayersMatchId -> disconnectLambda : Connection Ids
+alt no active connections
+    disconnectLambda -> DynamoDB : deleteTable(tempPlayersMatchId)
+    disconnectLambda -> DynamoDB : deleteTable(tempPlayerProblemsMatchId)
+    disconnectLambda -> DynamoDB : deleteTable(tempPlayerTutorialsMatchId)
+else otherwise
+    disconnectLambda -> disconnectLambda: nothing xd
+end
 @enduml
