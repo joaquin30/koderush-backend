@@ -6,7 +6,9 @@ INSERT INTO problems (problem_id, title, memory_limit, time_limit, statement, in
 INSERT INTO problem_examples (example_id, problem_id, input, output, explanation) VALUES
 (1, 'prob001', '3 4', '7', '3 + 4 = 7'),
 (2, 'prob002', '5', '120', '5! = 5×4×3×2×1 = 120'),
-(3, 'prob003', '12 18', '6', 'El MCD de 12 y 18 es 6.');
+(3, 'prob003', '12 18', '6', 'El MCD de 12 y 18 es 6.'),
+(4, 'prob001', '2 1', '3', '2 + 1 = 3'),
+(5, 'prob001', '6 7', '13', '6 + 7 = 13');
 
 INSERT INTO matches (match_id, start_timestamp, seconds_per_problem, seconds_per_tutorial) VALUES
 ('match001', NULL, 600, 300),

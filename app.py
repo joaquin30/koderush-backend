@@ -10,13 +10,23 @@ socketio = sio.SocketIO(app, cors_allowed_origins='*')
 matches: dict[str, Match] = {}
 match_online_players: dict[str, dict[str, str]] = {}
 
+SUPPORTED_LANG ={
+    "python": "3.10.0",
+    "c++": "10.2.0",
+    "javascript": "18.15.0"
+}
+
 # Using Piston API to execute code (For now, only Python is supported)
-def execute_code(code, input_data):
+def execute_code(code, input_data, language):
     piston_url = "https://emkc.org/api/v2/piston/execute"
-    
+
+    if language not in list(SUPPORTED_LANG.keys()):
+        print(f"{language} is not supported")
+        return None
+
     payload = {
-        "language": "python",
-        "version": "3.10.0",
+        "language": language,
+        "version": SUPPORTED_LANG[language],
         "files": [{
             "content": code
         }],
@@ -39,10 +49,10 @@ def execute_code(code, input_data):
         return None
 
 # To evaluate individual tests for the code submitted
-def validate_solution(problem, solution):
+def validate_solution(problem, solution, language):
     verdict = "accepted"
     for test in problem['examples']:
-        output = execute_code(solution, test['input'])
+        output = execute_code(solution, test['input'], language)
         if output is None:
             verdict = "runtime error"
             break
@@ -127,7 +137,7 @@ def handle_upload_solution(data):
     solution = data['solution']
     index = data['index']
     timestamp = int(time.time())
-    veredict = validate_solution(match.problems[problem_id], solution) # Only for Python for now
+    veredict = validate_solution(match.problems[problem_id], solution, language) # (Python and C++ supported)
     match.add_player_submission(player, problem_id, language, solution, timestamp, veredict)
     sio.emit('new_submission', {'player': player, 'problem': problem_id,
             'timestamp': timestamp, 'veredict': veredict,
