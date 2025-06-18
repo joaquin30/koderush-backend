@@ -40,8 +40,9 @@ def execute_code(code, input_data, language):
         
         # Combine stdout and stderr (some errors might go to stdout)
         output = data.get('run', {}).get('output', '').strip()
-        if data.get('run', {}).get('stderr'):
-            output += "\n" + data['run']['stderr'].strip()
+        print("Piston stdout:", output)
+        #if data.get('run', {}).get('stderr'):
+        #    output += "\n" + data['run']['stderr'].strip()
         
         return output if output else None
     except requests.exceptions.RequestException as e:
@@ -63,40 +64,16 @@ def validate_solution(problem, solution, language):
 
 def run_match(match_id):
     match = matches[match_id]
-    start_timestamp =int(time.time()) + 3
-    match.set_start_timestamp(start_timestamp)
-    time.sleep(3)
-    socketio.emit('start_timestamp', start_timestamp, room=match_id, namespace='/')
+    match.set_start_timestamp(int(time.time()))
     print('Match started')
-    players = match.get_players()
-    print('Players:', players)
-    problems = list(match.problems.keys())
-    problems_per_player = {}
-    for player in players:
-        random.shuffle(problems)
-        problems_per_player[player] = problems[:]
-    for i in range(len(problems)):
-        for player, player_problems in problems_per_player.items():
-            problem_id = player_problems[i]
+    print('Players:', match.get_players())
+    for player in match.get_players():
+        for problem_id in match.problems.keys():
             match.add_problem_access(player, problem_id)
-            problem = dict(match.problems[problem_id])
-            problem['tutorial'] = None
-            sid = match_online_players[match_id][player]
-            socketio.emit('new_problem', problem, to=sid, namespace='/')
-            print('Problema liberado')
-        time.sleep(10) #match.seconds_per_problem)
-        for player, player_problems in problems_per_player.items():
-            problem_id = player_problems[i]
-            match.add_tutorial_access(player, problem_id)
-            problem = dict(match.problems[problem_id])
-            tutorial = {
-                'problem_id': problem['problem_id'],
-                'tutorial': problem['tutorial']
-            }
-            sid = match_online_players[match_id][player]
-            socketio.emit('new_tutorial', tutorial, to=sid, namespace='/')
-            print('Tutorial liberado')
-        time.sleep(5) #match.seconds_per_tutorial)
+        sid = match_online_players[match_id][player]
+        #print(sid, match.get_player_state(player))
+        socketio.emit('state_update', match.get_player_state(player), to=sid)
+    time.sleep(900)
     socketio.emit('match_ended', room=match_id, namespace='/')
 
 @socketio.on('join_match')
@@ -130,18 +107,18 @@ def handle_join(data):
 @socketio.on('upload_solution')
 def handle_upload_solution(data):
     match_id = flask.session['match_id']
-    match = flask.session['match']
+    match: Match = flask.session['match']
     player = flask.session['player']
     problem_id = data['problem_id']
     language = data['language']
     solution = data['solution']
-    index = data['index']
+    # index = data['index']
     timestamp = int(time.time())
     veredict = validate_solution(match.problems[problem_id], solution, language) # (Python and C++ supported)
     match.add_player_submission(player, problem_id, language, solution, timestamp, veredict)
-    sio.emit('new_submission', {'player': player, 'problem': problem_id,
-            'timestamp': timestamp, 'veredict': veredict,
-            'index': index}, room=match_id)
+    for player in match.get_players():
+        sid = match_online_players[match_id][player]
+        sio.emit('state_update', match.get_player_state(player), to=sid)
 
 @socketio.on('prepare_match')
 def handle_start_match(data):

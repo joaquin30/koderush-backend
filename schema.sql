@@ -15,6 +15,7 @@ CREATE TABLE problem_examples (
     input TEXT NOT NULL,
     output TEXT NOT NULL,
     explanation TEXT NOT NULL,
+    is_public INTEGER NOT NULL,
     FOREIGN KEY (problem_id) REFERENCES problems(problem_id)
 );
 

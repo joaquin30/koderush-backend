@@ -1,23 +1,19 @@
 INSERT INTO problems (problem_id, title, memory_limit, time_limit, statement, input_description, output_description, tutorial) VALUES
-('prob001', 'Suma de dos números', 128, 1.0, 'Dado dos enteros, devuelve su suma.', 'Dos enteros a y b separados por espacio.', 'Un entero, la suma de a y b.', 'Usa el operador + en tu lenguaje favorito.'),
-('prob002', 'Factorial', 128, 2.0, 'Dado un entero n, devuelve su factorial.', 'Un entero n (0 ≤ n ≤ 10).', 'El factorial de n.', 'Recursión o bucle hasta n.'),
-('prob003', 'Máximo común divisor', 128, 1.5, 'Calcula el MCD de dos enteros positivos.', 'Dos enteros positivos separados por espacio.', 'El MCD de los dos enteros.', 'Usa el algoritmo de Euclides.');
+('prob001', 'Fuerza de un número', 128, 1.0, 'La fuerza de un número es definida como la cantidad de dígitos diferentes que tiene. Se te dará un número N, halla su fuerza.', 'Una linea con un número N (1 <= N <= 10^9).', 'Un entero, la fuerza de N.', ''),
+('prob002', 'Un número especial', 128, 1.0, 'Un número es bello si termina en 6 y, tras moverlo al principio, se triplica. Halla el primer número natural que sea bello.', 'No hay entrada.', 'Este problema solo tiene una prueba: se debe imprimir el primer número natural bello. El número natural puede superar el valor de 2^64, así que debes usar Python o BigIntegers en tu lenguaje.', '');
 
-INSERT INTO problem_examples (example_id, problem_id, input, output, explanation) VALUES
-(1, 'prob001', '3 4', '7', '3 + 4 = 7'),
-(2, 'prob002', '5', '120', '5! = 5×4×3×2×1 = 120'),
-(3, 'prob003', '12 18', '6', 'El MCD de 12 y 18 es 6.'),
-(4, 'prob001', '2 1', '3', '2 + 1 = 3'),
-(5, 'prob001', '6 7', '13', '6 + 7 = 13');
+INSERT INTO problem_examples (example_id, problem_id, input, output, explanation, is_public) VALUES
+(1, 'prob001', '334', '2', 'Existen dos dígitos diferentes en 334: 3 y 4.', 1),
+(2, 'prob001', '45325', '4', '', 0),
+(3, 'prob001', '123456789', '9', '', 0),
+(4, 'prob001', '0', '1', '', 0),
+(5, 'prob001', '777', '1', '', 0),
+(6, 'prob001', '1000000000', '2', '', 0),
+(7, 'prob002', '', '2068965517241379310344827586', '', 0);
 
 INSERT INTO matches (match_id, start_timestamp, seconds_per_problem, seconds_per_tutorial) VALUES
-('match001', NULL, 600, 300),
-('match002', NULL, 900, 300);
+('match001', NULL, 600, 0);
 
 INSERT INTO match_problems (match_id, problem_id) VALUES
 ('match001', 'prob001'),
-('match001', 'prob002'),
-('match001', 'prob003'),
-('match002', 'prob001'),
-('match002', 'prob002'),
-('match002', 'prob003');
+('match001', 'prob002');

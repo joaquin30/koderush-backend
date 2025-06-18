@@ -106,7 +106,7 @@ class Match:
         for row in problems_data:
             problem_id = row[0]
             self.cursor.execute("""
-                SELECT example_id, input, output, explanation
+                SELECT example_id, input, output, explanation, is_public
                 FROM problem_examples
                 WHERE problem_id = ?
             """, (problem_id,))
@@ -117,7 +117,8 @@ class Match:
                     'example_id': example_row[0],
                     'input': example_row[1],
                     'output': example_row[2],
-                    'explanation': example_row[3]
+                    'explanation': example_row[3],
+                    'is_public': bool(example_row[4])
                 })
 
             self.problems[problem_id] = {
@@ -160,6 +161,7 @@ class Match:
         for problem_id, problem in self.problems.items():
             if self.check_problem_access(player, problem_id):
                 problem_data = dict(problem)
+                problem_data['examples'] = list(filter(lambda x: x['is_public'], problem_data['examples']))
                 if not self.check_tutorial_access(player, problem_id):
                     problem_data['tutorial'] = None
                 player_state['problems'][problem_id] = problem_data
