@@ -168,5 +168,9 @@ def handle_disconnect():
         if player in match_online_players:
             del match_online_players[match_id][player]
 
+@app.route("/")
+def health_check():
+    return "OK", 200
+
 if __name__ == '__main__':
     socketio.run(app, host="0.0.0.0", port=5000)
