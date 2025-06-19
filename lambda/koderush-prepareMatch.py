@@ -1,6 +1,8 @@
 import json
 import boto3
+from dynamo_manager import DynamoMatchManager
 
+dynamodb = boto3.resource('dynamodb')
 dynamodb_client = boto3.client('dynamodb')
 api_client = boto3.client('apigatewaymanagementapi', endpoint_url="https://ngkia3mb99.execute-api.us-east-1.amazonaws.com/production")
 
@@ -10,75 +12,42 @@ def get_request_data(event):
 def send_message(connection_id, data):
     return api_client.post_to_connection(
         ConnectionId=connection_id,
-        Data=json.dumps(data)
+        Data=json.dumps(data).encode('utf-8')  # Ensure binary encoding
     )
 
-def lambda_handler(event, context):
-    print("Received event:", json.dumps(event))
-
+def create_table_if_not_exists(name, key_schema, attr_defs):
     try:
-        connection_id, eventBody = get_request_data(event)
-        match_id = eventBody["matchId"]
-        if not match_id:
-            return {"statusCode": 400, "body": "Missing matchId"}
-
-        # Define table names
-        players_table = f"tempPlayers_{match_id}"
-        problems_table = f"tempPlayerProblems_{match_id}"
-        tutorials_table = f"tempPlayerTutorials_{match_id}"
-
-        # Create tempPlayers table
         dynamodb_client.create_table(
-            TableName=players_table,
-            KeySchema=[
-                {"AttributeName": "connectionId", "KeyType": "HASH"}
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "connectionId", "AttributeType": "S"}
-            ],
+            TableName=name,
+            KeySchema=key_schema,
+            AttributeDefinitions=attr_defs,
             BillingMode="PAY_PER_REQUEST"
         )
+    except dynamodb_client.exceptions.ResourceInUseException:
+        pass  # Already exists
 
-        # Create tempPlayerProblems table
-        dynamodb_client.create_table(
-            TableName=problems_table,
-            KeySchema=[
-                {"AttributeName": "player", "KeyType": "HASH"},
-                {"AttributeName": "problemId", "KeyType": "RANGE"}
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "player", "AttributeType": "S"},
-                {"AttributeName": "problemId", "AttributeType": "S"}
-            ],
-            BillingMode="PAY_PER_REQUEST"
-        )
+def lambda_handler(event, context):
+    connection_id, body = get_request_data(event)
+    match_id = body.get("matchId")
 
-        # Create tempPlayerTutorials table
-        dynamodb_client.create_table(
-            TableName=tutorials_table,
-            KeySchema=[
-                {"AttributeName": "player", "KeyType": "HASH"},
-                {"AttributeName": "tutorialId", "KeyType": "RANGE"}
-            ],
-            AttributeDefinitions=[
-                {"AttributeName": "player", "AttributeType": "S"},
-                {"AttributeName": "tutorialId", "AttributeType": "S"}
-            ],
-            BillingMode="PAY_PER_REQUEST"
-        )
+    if not match_id:
+        return {"statusCode": 400, "body": "Missing matchId"}
 
-        send_message(connection_id, {"message": "Tables created successfully"})
-        return {"statusCode": 200} # This is for the API, not for the connected user
+    manager = DynamoMatchManager(match_id)
+    
+    try:
+        manager.create_temp_tables()
 
-    except dynamodb_client.exceptions.ResourceInUseException as e:
-        send_message(connection_id, {"message": f"One or more tables already exist: {str(e)}"})
-        return {
-            "statusCode": 400,
-            "body": f"One or more tables already exist: {str(e)}"
-        }
+        metadata = manager.get_match_metadata()
+        if not metadata:
+            send_message(connection_id, {"message": "Match not found"})
+            return {"statusCode": 404, "body": "No match metadata"}
+
+        send_message(connection_id, {
+            "message": "Match prepared",
+            "matchMetadata": metadata
+        })
+        return {"statusCode": 200}
     except Exception as e:
         send_message(connection_id, {"message": f"Error: {str(e)}"})
-        return {
-            "statusCode": 500,
-            "body": f"Error: {str(e)}"
-        }
+        return {"statusCode": 500, "body": f"Error: {str(e)}"}
