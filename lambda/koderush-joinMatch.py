@@ -1,26 +1,42 @@
-import json
-import boto3
+from dynamo_manager import DynamoMatchManager
+from api_manager import ApiManager
+from rds_manager import RDSManager
 
-client = boto3.client('apigatewaymanagementapi', endpoint_url="https://ngkia3mb99.execute-api.us-east-1.amazonaws.com/production")
-
-def get_request_data(event):
-    return event["requestContext"]["connectionId"], json.loads(event["body"])
-
-def send_message(connection_id, data):
-    return client.post_to_connection(
-        ConnectionId=connection_id,
-        Data=json.dumps(data)
-    )
+api_manager = ApiManager()
+rds_manager = RDSManager()
 
 # Function that lambda will run (keep name as it is)
 def lambda_handler(event, context):
-    print("Received event:", json.dumps(event))
+    connection_id, body = api_manager.get_request_data(event)
+    match_id = body.get("match_id")
+    player = body.get("player")
+
+    if not match_id:
+        api_manager.send_message(connection_id, {"message": "Match not found"})
+        return {"statusCode": 404, "body": "No active match found"}
     
-    connection_id, eventBody = get_request_data(event)
-    match_id = eventBody["matchId"]
-    player_name = eventBody['playerName']
+    dynamo_manager = DynamoMatchManager(match_id)
 
-    data = {"matchId": match_id, "playerName": player_name}
-    send_message(connection_id, data)
+    if not dynamo_manager.check_table_exists():
+        api_manager.send_message(connection_id, {"message": "Match not found"})
+        return {"statusCode": 404, "body": "No active match found"}
 
-    return {"statusCode": 200}
+    # TODO: Handle the case when the match has already started ...
+
+    try:
+        dynamo_manager.add_player(player, connection_id)
+        
+        data = {"message": "new_player", "player": player}
+        api_manager.send_message(connection_id, data)
+
+        players = dynamo_manager.get_players()
+        state = rds_manager.get_player_state(match_id, player, players)
+        data = {"message": "state_update", "state": state}
+        api_manager.send_message(connection_id, data)
+
+        return {"statusCode": 200, "body": "Player added successfully"}
+    except Exception as e:
+        print(f"Error adding player: {e}")
+        api_manager.send_message(connection_id, {"message": "Error adding player"})
+        return {"statusCode": 500, "body": "Error adding player"}
+    

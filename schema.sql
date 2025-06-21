@@ -1,5 +1,5 @@
 CREATE TABLE problems (
-    problem_id TEXT PRIMARY KEY,
+    problem_id VARCHAR(10) PRIMARY KEY,
     title TEXT NOT NULL,
     memory_limit INTEGER NOT NULL, -- en megabytes
     time_limit REAL NOT NULL,      -- en segundos
@@ -11,7 +11,7 @@ CREATE TABLE problems (
 
 CREATE TABLE problem_examples (
     example_id INTEGER PRIMARY KEY,
-    problem_id INTEGER NOT NULL,
+    problem_id VARCHAR(10) NOT NULL,
     input TEXT NOT NULL,
     output TEXT NOT NULL,
     explanation TEXT NOT NULL,
@@ -21,9 +21,9 @@ CREATE TABLE problem_examples (
 
 CREATE TABLE submissions (
     submission_id INTEGER PRIMARY KEY,
-    match_id TEXT NOT NULL,
+    match_id VARCHAR(10) NOT NULL,
     player TEXT NOT NULL,
-    problem_id INTEGER NOT NULL,
+    problem_id VARCHAR(10) NOT NULL,
     language TEXT NOT NULL,
     solution TEXT NOT NULL,
     timestamp INTEGER NOT NULL,
@@ -33,15 +33,15 @@ CREATE TABLE submissions (
 );
 
 CREATE TABLE matches (
-    match_id TEXT PRIMARY KEY,
+    match_id VARCHAR(10) PRIMARY KEY,
     start_timestamp INTEGER,
     seconds_per_problem INTEGER NOT NULL,
     seconds_per_tutorial INTEGER NOT NULL
 );
 
 CREATE TABLE match_problems (
-    match_id TEXT NOT NULL,
-    problem_id INTEGER NOT NULL,
+    match_id VARCHAR(10) NOT NULL,
+    problem_id VARCHAR(10) NOT NULL,
     PRIMARY KEY (match_id, problem_id),
     FOREIGN KEY (match_id) REFERENCES matches(match_id),
     FOREIGN KEY (problem_id) REFERENCES problems(problem_id)

@@ -1,53 +1,36 @@
-import json
-import boto3
 from dynamo_manager import DynamoMatchManager
+from api_manager import ApiManager
+from rds_manager import RDSManager
 
-dynamodb = boto3.resource('dynamodb')
-dynamodb_client = boto3.client('dynamodb')
-api_client = boto3.client('apigatewaymanagementapi', endpoint_url="https://ngkia3mb99.execute-api.us-east-1.amazonaws.com/production")
-
-def get_request_data(event):
-    return event["requestContext"]["connectionId"], json.loads(event["body"])
-
-def send_message(connection_id, data):
-    return api_client.post_to_connection(
-        ConnectionId=connection_id,
-        Data=json.dumps(data).encode('utf-8')  # Ensure binary encoding
-    )
-
-def create_table_if_not_exists(name, key_schema, attr_defs):
-    try:
-        dynamodb_client.create_table(
-            TableName=name,
-            KeySchema=key_schema,
-            AttributeDefinitions=attr_defs,
-            BillingMode="PAY_PER_REQUEST"
-        )
-    except dynamodb_client.exceptions.ResourceInUseException:
-        pass  # Already exists
+api_manager = ApiManager()
+rds_manager = RDSManager()
 
 def lambda_handler(event, context):
-    connection_id, body = get_request_data(event)
+    connection_id, body = api_manager.get_request_data(event)
     match_id = body.get("matchId")
 
     if not match_id:
-        return {"statusCode": 400, "body": "Missing matchId"}
+        api_manager.send_message(connection_id, {"message": "Match not found"})
+        return {"statusCode": 404, "body": "No match found"}
+    
+    status, records = rds_manager.execute_statement(
+        "SELECT match_id FROM matches WHERE match_id = :match_id",
+        parameters=[{"name": "match_id", "value": {"stringValue": match_id}}]
+    )
 
-    manager = DynamoMatchManager(match_id)
+    if status != 200 or not records:
+        api_manager.send_message(connection_id, {"message": "Match not found"})
+        return {"statusCode": 404, "body": "No match found"}
+
+    dynamo_manager = DynamoMatchManager(match_id)
     
     try:
-        manager.create_temp_tables()
+        dynamo_manager.create_temp_tables()
 
-        metadata = manager.get_match_metadata()
-        if not metadata:
-            send_message(connection_id, {"message": "Match not found"})
-            return {"statusCode": 404, "body": "No match metadata"}
-
-        send_message(connection_id, {
-            "message": "Match prepared",
-            "matchMetadata": metadata
+        api_manager.send_message(connection_id, {
+            "message": "Match prepared"
         })
-        return {"statusCode": 200}
+        return {"statusCode": 200, "body": "Temp tables successfully"}
     except Exception as e:
-        send_message(connection_id, {"message": f"Error: {str(e)}"})
-        return {"statusCode": 500, "body": f"Error: {str(e)}"}
+        api_manager.send_message(connection_id, {"message": f"Error while creating tables: {str(e)}"})
+        return {"statusCode": 500, "body": f"Error while creating tables: {str(e)}"}
