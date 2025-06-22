@@ -108,3 +108,8 @@ class DynamoMatchManager:
         table = self.dynamodb.Table(self.players_table_name)
         response = table.scan()
         return [item['player'] for item in response.get('Items', [])]
+    
+    def get_connection_ids(self):
+        table = self.dynamodb.Table(self.players_table_name)
+        response = table.scan()
+        return [item['connectionId'] for item in response.get('Items', [])]
