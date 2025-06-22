@@ -113,3 +113,11 @@ class DynamoMatchManager:
         table = self.dynamodb.Table(self.players_table_name)
         response = table.scan()
         return [item['connectionId'] for item in response.get('Items', [])]
+
+    # TODO: Implement this function to add a player's submission
+    def add_player_submission(self, args):
+        pass
+    def get_problem_by_id(self, problem_id):
+        table = self.dynamodb.Table("problems")
+        response = table.get_item(Key={"problem_id": problem_id})
+        return response.get("Item", None)
