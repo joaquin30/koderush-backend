@@ -133,6 +133,18 @@ class RDSManager:
                 }
 
         return problems
+    
+    def get_match(self, match_id):
+        match_query = """
+            SELECT *
+            FROM matches
+            WHERE match_id = :match_id;
+        """
+        status, match_data = self.execute_statement(match_query, "matches", [{"name": "match_id", "value": {"stringValue": match_id}}])
+        if status != 200 or not match_data:
+            print(f"Error fetching match data for match_id {match_id}")
+            return None
+        return match_data[0]
         
     def get_players_submissions(self, match_id):
         submissions_query = """
