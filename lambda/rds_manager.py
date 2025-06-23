@@ -165,7 +165,7 @@ class RDSManager:
             {"name": "problem_id", "value": {"stringValue": problem_id}},
             {"name": "language", "value": {"stringValue": language}},
             {"name": "solution", "value": {"stringValue": solution}},
-            {"name": "timestamp", "value": {"longValue": timestamp}},
+            {"name": "timestamp", "value": {"intValue": timestamp}},
             {"name": "veredict", "value": {"stringValue": veredict}}
         ]
         status, _ = self.execute_statement(insert_query, "submissions", parameters)

@@ -2,6 +2,7 @@ from dynamo_manager import DynamoMatchManager
 from api_manager import ApiManager
 from rds_manager import RDSManager
 from piston_manager import PistonManager
+import time
 
 api_manager = ApiManager()
 rds_manager = RDSManager()
@@ -14,11 +15,11 @@ def lambda_handler(event, context):
     problem_id = body.get("problem_id")
     language = body.get("language")
     solution = body.get("solution")
-    timestamp = body.get("timestamp")
+    timestamp = int(time.time())
 
     if not match_id:
         api_manager.send_message(connection_id, {"message": "Match not found"})
-        return {"statusCode": 404, "body": "No active match found"}
+        return {"statusCode": 404, "body": "No matchID was provided"}
     
     dynamo_manager = DynamoMatchManager(match_id)
 
@@ -26,7 +27,8 @@ def lambda_handler(event, context):
         api_manager.send_message(connection_id, {"message": "Match not found"})
         return {"statusCode": 404, "body": "No active match found"}
     
-    problem = dynamo_manager.get_problem_by_id(problem_id)
+    problems = rds_manager.get_problems(problem_id)
+    problem = problems.get(problem_id)
     
     if not problem:
         api_manager.send_message(connection_id, {"message": "Problem not found"})
@@ -34,15 +36,32 @@ def lambda_handler(event, context):
     
     veredict = coderunner.validate_solution(problem, solution, language)
 
-    done = rds_manager.add_player_submission(match_id, player, problem_id, language, solution, timestamp, veredict) # TODO
+    done = rds_manager.add_player_submission(match_id, player, problem_id, language, solution, timestamp, veredict)
     if not done:
         api_manager.send_message(connection_id, {"message": "Error uploading solution"})
         return {"statusCode": 500, "body": "Error uploading solution"}
     
     connection_ids = dynamo_manager.get_connection_ids()
+    players = dynamo_manager.get_players()
     if not connection_ids:
         api_manager.send_message(connection_id, {"message": "No players connected"})
         return {"statusCode": 404, "body": "No players connected"}
     
+    state = {}
+
+    print(f'{match_id} started with players: {players}')
+    for i in range(len(players)):
+        player = players[i]
+        player_connection_id = connection_ids[i]
+
+        # I think that the only thing that chnages in the state is the player    
+        if i == 0:
+            print('Calculated state for the first time')
+            state = rds_manager.get_player_state(match_id, player, players, dynamo_manager)
+            
+        state['player'] = player
+        data = {"message": "state_update", "state": state}
+        api_manager.send_message(player_connection_id, data)
+
     api_manager.send_message(connection_id, {"message": "new_submission", "connection_ids": connection_ids})
     return {"statusCode": 200, "body": "Solution uploaded successfully"}

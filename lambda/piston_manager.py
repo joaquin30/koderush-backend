@@ -1,4 +1,5 @@
 import requests
+import os
 
 class UnsupportedLanguageError(Exception):
     def __init__(self, language):
@@ -6,8 +7,8 @@ class UnsupportedLanguageError(Exception):
         super().__init__(f"Language '{language}' is not supported.")
 
 class PistonManager:
-    def __init__(self, piston_url='https://emkc.org/api/v2/piston/execute'):
-        self.piston_url = piston_url
+    def __init__(self):
+        self.piston_url = os.environ.get('PISTON_EXECUTE_URL', None)
         self.supported_lang = {
             "python": "3.10.0",
             "c++": "10.2.0",
