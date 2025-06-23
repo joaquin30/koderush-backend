@@ -154,6 +154,26 @@ class RDSManager:
             'veredict': row['veredict'],
         } for row in submissions_data]
     
+    def add_player_submission(self, match_id, player, problem_id, language, solution, timestamp, veredict):
+        insert_query = """
+            INSERT INTO submissions (match_id, player, problem_id, language, solution, timestamp, veredict)
+            VALUES (:match_id, :player, :problem_id, :language, :solution, :timestamp, :veredict);  
+        """
+        parameters = [
+            {"name": "match_id", "value": {"stringValue": match_id}},
+            {"name": "player", "value": {"stringValue": player}},
+            {"name": "problem_id", "value": {"stringValue": problem_id}},
+            {"name": "language", "value": {"stringValue": language}},
+            {"name": "solution", "value": {"stringValue": solution}},
+            {"name": "timestamp", "value": {"longValue": timestamp}},
+            {"name": "veredict", "value": {"stringValue": veredict}}
+        ]
+        status, _ = self.execute_statement(insert_query, "submissions", parameters)
+        if status != 200:
+            print(f"Error adding submission for match_id {match_id}, player {player}, problem_id {problem_id}")
+            return False
+        return True
+    
     def get_player_state(self, match_id, player, players, dynamo_manager):
         
         matches_query = """
