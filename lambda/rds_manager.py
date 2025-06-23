@@ -64,12 +64,97 @@ class RDSManager:
             print(f"Error executing SQL: {e}")
             return -1, None
         
+    def set_start_timestamp(self, match_id, start_timestamp):
+        update_query = """
+            UPDATE matches
+            SET start_timestamp = :start_timestamp
+            WHERE match_id = :match_id;
+        """
+        parameters = [
+            {"name": "start_timestamp", "value": {"longValue": start_timestamp}},
+            {"name": "match_id", "value": {"stringValue": match_id}}
+        ]
+        status, _ = self.execute_statement(update_query, "matches", parameters)
+        if status != 200:
+            print(f"Error updating start timestamp for match_id {match_id}")
+            return False
+        return True
+        
+    def get_problems(self, match_id):
+        problems_query = """
+            SELECT p.problem_id, p.title, p.memory_limit, p.time_limit,
+                   p.statement, p.input_description, p.output_description, p.tutorial
+            FROM problems p
+            JOIN match_problems mp ON p.problem_id = mp.problem_id
+            WHERE mp.match_id = :match_id;
+        """
+        status, problems_data = self.execute_statement(problems_query, "problems", [{"name": "match_id", "value": {"stringValue": match_id}}])
+
+        problems = {}
+
+        if status != 200 or not problems_data:
+            print(f"Error fetching problems for match_id {match_id}")
+            return []
+        
+        print(f"Problems data for match_id {match_id}: {problems_data}")
+        
+        for problem in problems_data:
+            examples_query = """
+                SELECT *
+                FROM problem_examples
+                WHERE problem_id = :problem_id;
+            """
+            status, examples_data = self.execute_statement(examples_query, "problem_examples", [{"name": "problem_id", "value": {"stringValue": problem["problem_id"]}}])
+            
+            if status != 200 or not examples_data:
+                print(f"Error fetching examples for problem_id {problem['problem_id']}")
+                problem['examples'] = []
+            else:
+                examples_list = []
+                for example_row in examples_data:
+                    examples_list.append({
+                        'example_id': example_row['example_id'],
+                        'input': example_row['input'],
+                        'output': example_row['output'],
+                        'explanation': example_row['explanation'],
+                        'is_public': bool(example_row['is_public'])
+                    })
+
+                problems[problem['problem_id']] = {
+                    'problem_id': problem['problem_id'],
+                    'title': problem['title'],
+                    'memory_limit': problem['memory_limit'],
+                    'time_limit': problem['time_limit'],
+                    'statement': problem['statement'],
+                    'input_description': problem['input_description'],
+                    'output_description': problem['output_description'],
+                    'tutorial': problem['tutorial'],
+                    'examples': examples_list
+                }
+
+        return problems
+        
     def get_players_submissions(self, match_id):
-        # TODO: ...
-        return []
+        submissions_query = """
+            SELECT *
+                FROM submissions
+            WHERE match_id = :match_id;
+        """
+        status, submissions_data = self.execute_statement(submissions_query, "submissions", [{"name": "match_id", "value": {"stringValue": match_id}}])
+        if status != 200:
+            print(f"Error fetching submissions for match_id {match_id}")
+            return []
+        elif not submissions_data:
+            print(f"No submissions found for match_id {match_id}")
+            return []
+        return [{
+            'player': row['player'],
+            'problem_id': row['problem_id'],
+            'timestamp': row['timestamp'],
+            'veredict': row['veredict'],
+        } for row in submissions_data]
     
-    # TODO: Complete this function for the whole state (missing submissions and problems logic)
-    def get_player_state(self, match_id, player, players):
+    def get_player_state(self, match_id, player, players, dynamo_manager):
         
         matches_query = """
             SELECT * FROM matches
@@ -80,6 +165,8 @@ class RDSManager:
         if status != 200 or not matches_data:
             print(f"Error fetching match data for match_id {match_id}")
             return None
+        
+        problems = self.get_problems(match_id)
 
         player_state = {
             'match_id': match_id,
@@ -88,9 +175,21 @@ class RDSManager:
             'seconds_per_tutorial': matches_data[0]["seconds_per_tutorial"],
             'player': player,
             'players': players,
-            'problem_count': 0, # TODO
+            'problem_count': len(problems),
             'problems': {},
             'submissions': self.get_players_submissions(match_id)
         }
+
+        print(f"Player state for {player} in match {match_id}: {player_state}")
+
+        for problem_id, problem in problems.items():
+            if dynamo_manager.check_problem_access(player, problem_id):
+                problem_data = dict(problem)
+                problem_data['examples'] = list(filter(lambda x: x['is_public'], problem_data['examples']))
+                if not dynamo_manager.check_tutorial_access(player, problem_id):
+                    problem_data['tutorial'] = None
+                player_state['problems'][problem_id] = problem_data
+            else:
+                player_state['problems'][problem_id] = None
 
         return player_state

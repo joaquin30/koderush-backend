@@ -24,13 +24,16 @@ def lambda_handler(event, context):
     # TODO: Handle the case when the match has already started ...
 
     try:
-        dynamo_manager.add_player(player, connection_id)
+        player_connection_ids = dynamo_manager.get_connection_ids()
         
-        data = {"message": "new_player", "player": player}
-        api_manager.send_message(connection_id, data)
+        for player_connection_id in player_connection_ids:
+            data = {"message": "new_player", "player": player}
+            api_manager.send_message(player_connection_id, data) # Before actually adding the player
+
+        dynamo_manager.add_player(player, connection_id)
 
         players = dynamo_manager.get_players()
-        state = rds_manager.get_player_state(match_id, player, players)
+        state = rds_manager.get_player_state(match_id, player, players, dynamo_manager)
         data = {"message": "state_update", "state": state}
         api_manager.send_message(connection_id, data)
 
