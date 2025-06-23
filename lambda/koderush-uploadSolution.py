@@ -34,10 +34,15 @@ def lambda_handler(event, context):
     
     veredict = coderunner.validate_solution(problem, solution, language)
 
-    #match_id, player, problem_id, language, solution, timestamp, veredict
     done = rds_manager.add_player_submission(match_id, player, problem_id, language, solution, timestamp, veredict) # TODO
     if not done:
         api_manager.send_message(connection_id, {"message": "Error uploading solution"})
         return {"statusCode": 500, "body": "Error uploading solution"}
-    api_manager.send_message(connection_id, {"message": "Solution uploaded successfully", "veredict": veredict})
+    
+    connection_ids = dynamo_manager.get_connection_ids()
+    if not connection_ids:
+        api_manager.send_message(connection_id, {"message": "No players connected"})
+        return {"statusCode": 404, "body": "No players connected"}
+    
+    api_manager.send_message(connection_id, {"message": "new_submission", "connection_ids": connection_ids})
     return {"statusCode": 200, "body": "Solution uploaded successfully"}
