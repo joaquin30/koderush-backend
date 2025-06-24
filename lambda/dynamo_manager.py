@@ -58,6 +58,14 @@ class DynamoMatchManager:
                 {"AttributeName": "tutorialId", "AttributeType": "S"}
             ]
         )
+    
+    def delete_temp_tables(self):
+        try:
+            self.client.delete_table(TableName=self.players_table_name)
+            self.client.delete_table(TableName=self.problems_table_name)
+            self.client.delete_table(TableName=self.tutorials_table_name)
+        except ClientError as e:
+            print(f"Error deleting tables: {e}")
 
     def add_player(self, player_id, connection_id):
         table = self.dynamodb.Table(self.players_table_name)

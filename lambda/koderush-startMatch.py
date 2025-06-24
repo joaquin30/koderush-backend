@@ -10,20 +10,27 @@ from datetime import datetime, timedelta
 api_manager = ApiManager()
 rds_manager = RDSManager()
 
+def get_cron_expression(minutes):
+    """Generate a cron expression for a one-time event."""
+    now = datetime.utcnow()
+    target_time = now + timedelta(minutes=minutes)
+    print(f"Scheduling for {target_time} UTC")
+    return f"cron({target_time.minute} {target_time.hour} {target_time.day} {target_time.month} ? *)"
+
 def create_end_event(match_id, delay_minutes=5):
     events = boto3.client('events')
     lambda_client = boto3.client('lambda')
 
     # Compute the time to invoke the Lambda
-    future_time = datetime.utcnow() + timedelta(minutes=delay_minutes)
-    schedule_time_str = future_time.isoformat() + "Z"
+    schedule_time = get_cron_expression(delay_minutes)
+    print(f"Scheduling end event for match {match_id} with cron expression: {schedule_time}")
 
     rule_name = f"end-match-{match_id}"
 
     # Create one-time rule
     response = events.put_rule(
         Name=rule_name,
-        ScheduleExpression=f"at({schedule_time_str})",
+        ScheduleExpression=schedule_time,
         State='ENABLED'
     )
     rule_arn = response['RuleArn']
@@ -56,7 +63,7 @@ def create_end_event(match_id, delay_minutes=5):
         ]
     )
 
-    print(f"Scheduled match end event for {match_id} at {schedule_time_str}")
+    print(f"Scheduled match end event for {match_id} at {schedule_time}")
     return True
 
 def lambda_handler(event, context):
@@ -106,7 +113,8 @@ def lambda_handler(event, context):
         data = {"message": "match_started", "match_id": match_id}
         api_manager.send_message(connection_id, data)
         end_delay = int(match_info["seconds_per_problem"])/60 * len(problems)
-        create_end_event(match_id, end_delay)
+        print(f"Scheduling end event for match {match_id} in {end_delay} minutes")
+        create_end_event(match_id, delay_minutes=1) # For testing for now
         return {"statusCode": 200, "body": "Match started successfully"}
     except Exception as e:
         print(f"Error retrieving connection IDs: {e}")

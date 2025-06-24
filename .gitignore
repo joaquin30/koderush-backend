@@ -3,3 +3,4 @@ __pycache__/
 matches.db
 .venv/
 backenv/
+lambda/packages

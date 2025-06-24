@@ -17,6 +17,8 @@ def lambda_handler(event, context):
     solution = body.get("solution")
     timestamp = int(time.time())
 
+    print(f'raw solution: {solution}')
+
     if not match_id:
         api_manager.send_message(connection_id, {"message": "Match not found"})
         return {"statusCode": 404, "body": "No matchID was provided"}
@@ -27,7 +29,8 @@ def lambda_handler(event, context):
         api_manager.send_message(connection_id, {"message": "Match not found"})
         return {"statusCode": 404, "body": "No active match found"}
     
-    problems = rds_manager.get_problems(problem_id)
+    problems = rds_manager.get_problems(match_id)
+    print(f'Problems: {problems}')
     problem = problems.get(problem_id)
     
     if not problem:

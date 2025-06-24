@@ -166,6 +166,20 @@ class RDSManager:
             'veredict': row['veredict'],
         } for row in submissions_data]
     
+    def get_all_submissions(self):
+        submissions_query = """
+            SELECT *
+            FROM submissions;
+        """
+        status, submissions_data = self.execute_statement(submissions_query, "submissions")
+        if status != 200:
+            print("Error fetching all submissions")
+            return []
+        elif not submissions_data:
+            print("No submissions found")
+            return []
+        return submissions_data
+    
     def add_player_submission(self, match_id, player, problem_id, language, solution, timestamp, veredict):
         insert_query = """
             INSERT INTO submissions (match_id, player, problem_id, language, solution, timestamp, veredict)
@@ -177,7 +191,7 @@ class RDSManager:
             {"name": "problem_id", "value": {"stringValue": problem_id}},
             {"name": "language", "value": {"stringValue": language}},
             {"name": "solution", "value": {"stringValue": solution}},
-            {"name": "timestamp", "value": {"intValue": timestamp}},
+            {"name": "timestamp", "value": {"longValue": timestamp}},
             {"name": "veredict", "value": {"stringValue": veredict}}
         ]
         status, _ = self.execute_statement(insert_query, "submissions", parameters)
