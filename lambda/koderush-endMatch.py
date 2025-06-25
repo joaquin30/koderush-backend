@@ -40,7 +40,7 @@ def lambda_handler(event, context):
             return {"statusCode": 404, "body": "No players found in the match"}
 
         for player_connection_id in  connection_ids:
-            data = {"message": "match_ended", "match_id": match_id}
+            data = {"type": "match_ended", "match_id": match_id}
             api_manager.send_message(player_connection_id, data)
 
         cleanup_end_event(match_id)

@@ -10,29 +10,25 @@ def lambda_handler(event, context):
     type = body.get("type")
     metadata = body.get("data")
 
-    if not data:
+    if not metadata:
         api_manager.send_message(connection_id, {"message": "Data was not sent"})
         return {"statusCode": 404, "body": "Data was not provided"}
 
     # TODO: Handle the case when the match has already started ...
 
     try:
-        player_connection_ids = dynamo_manager.get_connection_ids()
+        success = rds_manager.insert_data(type, metadata)
         
-        for player_connection_id in player_connection_ids:
-            data = {"message": "new_player", "player": player}
-            api_manager.send_message(player_connection_id, data) # Before actually adding the player
+        if success:
+            print(f"Data inserted successfully: {metadata}")
+            data = {"message": "Data inserted"}
+            api_manager.send_message(connection_id, data)
+            return {"statusCode": 200, "body": "Data inserted successfully"}
 
-        dynamo_manager.add_player(player, connection_id)
-
-        players = dynamo_manager.get_players()
-        state = rds_manager.get_player_state(match_id, player, players, dynamo_manager)
-        data = {"message": "state_update", "state": state}
-        api_manager.send_message(connection_id, data)
-
-        return {"statusCode": 200, "body": "Player added successfully"}
+        print(f"Failed to insert data: {metadata}")
+        return {"statusCode": 500, "body": "Data insertion failed"}
     except Exception as e:
         print(f"Error adding player: {e}")
-        api_manager.send_message(connection_id, {"message": "Error adding player"})
-        return {"statusCode": 500, "body": "Error adding player"}
+        api_manager.send_message(connection_id, {"message": "Error inserting data"})
+        return {"statusCode": 500, "body": "Error inserting data"}
     

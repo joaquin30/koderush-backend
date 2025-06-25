@@ -1,0 +1,14 @@
+{
+    "action":"insertData",
+    "type":"problems",
+    "data": {
+        "problem_id":"prob005",
+        "title":"problem title",
+        "memory_limit":128,
+        "time_limit":1,
+        "statement":"problem description",
+        "input_description":"input description",
+        "output_description":"output description",
+        "tutorial":"tutorial description"
+    }	
+}

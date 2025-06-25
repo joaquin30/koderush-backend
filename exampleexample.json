@@ -1,0 +1,11 @@
+{
+    "action":"insertData",
+    "type":"problem_examples",
+    "data": {
+        "problem_id": "prob005",
+        "input": "string",
+        "output": "string",
+        "explanation": "string",
+        "is_public": 1
+    }	
+}
