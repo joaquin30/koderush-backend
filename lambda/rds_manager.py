@@ -31,6 +31,11 @@ class RDSManager:
             ]
         }
 
+        def extract_value(value_obj):
+            if "isNull" in value_obj and value_obj["isNull"]:
+                return None
+            return next(iter(value_obj.values()))
+
         if table_name not in table_schemas:
             raise ValueError(f"Unsupported table name: {table_name}")
 
@@ -41,8 +46,7 @@ class RDSManager:
             record = {}
             for col_name, value_obj in zip(column_names, row):
                 # Extract the value regardless of its type
-                value = next(iter(value_obj.values()))
-                record[col_name] = value
+                record[col_name] = extract_value(value_obj)
             formatted_records.append(record)
 
         return formatted_records
@@ -239,3 +243,82 @@ class RDSManager:
                 player_state['problems'][problem_id] = None
 
         return player_state
+    
+    def insert_data(self, table_name, data):
+        # Define column types for each table
+        table_schemas = {
+            "problems": {
+                "problem_id": "string",
+                "title": "string",
+                "memory_limit": "int",
+                "time_limit": "float",
+                "statement": "string",
+                "input_description": "string",
+                "output_description": "string",
+                "tutorial": "string"
+            },
+            "problem_examples": {
+                "example_id": "int",
+                "problem_id": "string",
+                "input": "string",
+                "output": "string",
+                "explanation": "string",
+                "is_public": "int"
+            },
+            "submissions": {
+                "submission_id": "int",
+                "match_id": "string",
+                "player": "string",
+                "problem_id": "string",
+                "language": "string",
+                "solution": "string",
+                "timestamp": "int",
+                "veredict": "string"
+            },
+            "matches": {
+                "match_id": "string",
+                "start_timestamp": "int",
+                "seconds_per_problem": "int",
+                "seconds_per_tutorial": "int"
+            },
+            "match_problems": {
+                "match_id": "string",
+                "problem_id": "string"
+            }
+        }
+
+        if table_name not in table_schemas:
+            print(f"Unsupported table name: {table_name}")
+            return False
+
+        column_types = table_schemas[table_name]
+        columns = ', '.join(data.keys())
+        placeholders = ', '.join([f":{key}" for key in data.keys()])
+        insert_query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders});"
+
+        parameters = []
+        for key, value in data.items():
+            column_type = column_types.get(key)
+            param = {"name": key, "value": {}}
+
+            if value is None:
+                param["value"]["isNull"] = True
+            elif column_type == "int":
+                param["value"]["longValue"] = int(value)
+            elif column_type == "float":
+                param["value"]["doubleValue"] = float(value)
+            elif column_type == "string":
+                param["value"]["stringValue"] = str(value)
+            else:
+                raise ValueError(f"Unsupported column type '{column_type}' for column '{key}'")
+
+            parameters.append(param)
+
+        print(f"Executing insert query: {insert_query} with parameters: {parameters}")
+        status, _ = self.execute_statement(insert_query, table_name, parameters)
+        
+        if status != 200:
+            print(f"Error inserting data into {table_name}: {data}")
+            return False
+
+        return True
